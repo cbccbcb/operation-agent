@@ -1,0 +1,1 @@
+user_id,sample_datetime,application_id,job_id,transaction_id,bank_account_id,account_type,bank,credit_limit,transaction_date,amount,trx_type,dr_cr,expected_category,third_party,illion_trx_uuid,balance,text,current_category

@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv*/
+
+# 本地运行产物 / 临时目录
+_probe/
+demo/
+reviews/
+samples/
+repair-history/
+
+# 本地杂项
+.claude/
+System.Management.Automation.Internal.Host.InternalHost
+*.log
+.DS_Store
+Thumbs.db

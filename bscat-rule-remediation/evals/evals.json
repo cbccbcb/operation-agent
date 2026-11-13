@@ -1,0 +1,142 @@
+{
+  "skill_name": "bscat-rule-remediation",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "用 bscat-rule-remediation 技能分析这份不一致交易样本（sample_mixed.csv），仓库是 D:/Projects/AUS_BS_CAT_Model。这次三类问题都看：漏识别、多识别和不一致；所有差异聚类都处理，不用再问我范围。只做分析：生成候选规则、代码诊断和校验报告，不要审批，也不要修改仓库里的任何规则表。审核目录放在输出目录下的 review/。",
+      "expected_output": "先确认本地分支与 upstream 同步（0/0），再解析输入并区分 miss/extra/diff；prepare 写出的 parse_review.json 触发 I2（label_conflict），attribution_review.json 触发 I3（4 个聚类），Agent 在 propose 前用 AskUserQuestion 确认解析权威和目标表并写 dialog_decisions.json；用真实流水线取证后得到 5 个差异聚类（3 个漏识别、2 个不一致），生成路由正确且有证据的候选、按引擎拆分的审阅 CSV、只读代码诊断和校验报告；所有候选保持 pending，不生成网页审批界面，仓库文件不被修改。",
+      "files": ["evals/files/sample_mixed.csv"],
+      "expectations": [
+        "审核目录中存在 git_sync.json，且 ahead=0、behind=0。",
+        "审核目录中存在 samples.csv、parse_summary.json、parse_review.json、attribution_review.json、before_report.csv、clusters.csv、target_scope.json、candidates.json、validation_report.md、candidate_report.md，以及 candidates/ 下按引擎拆分的审阅 CSV 和审核目录根部的 candidates_all.csv。",
+        "target_scope.json 的来源为 user_prespecified，selected_groups 覆盖全部 5 个差异聚类。",
+        "parse_summary.json 显示写入 8 行，problem_scope 为 all；问题类型预览为 correct 5 / diff 3（预览基于输入当前分类），取证后应得到 3 个 miss 和 2 个 diff。",
+        "parse_review.json 的 required=true 且 triggers 含 label_conflict；Agent 在 propose 前用一次 AskUserQuestion 确认解析结果和期望分类权威，并把 decision=continue、expected_authority=sample、fingerprint、decided_at 写入 dialog_decisions.json#parse。",
+        "attribution_review.json 的 required=true，触发项含 attribution_risk、multiple_candidate_tables、owner_ambiguity；Agent 在 propose 前对每个触发聚类确认目标表（本轮全部 recommended），把 decisions、fingerprint、decided_at 写入 dialog_decisions.json#attribution。",
+        "取证结果显示 5 个差异行和 5 个聚类；clusters.csv 中每个聚类都带 problem_type。",
+        "Health 和 All Other Credits 的漏识别分别路由到 catch_all 和 all_other_credit，并标记为低风险。",
+        "DUNNINGS 的 Groceries 不一致路由到 initial 引擎，采用 edit 或 suggestion，而不是 catch_all 追加。",
+        "存在 code_findings.md 和 code_findings.json，给出每个聚类的 config_only / config_plus_code_review / code_change_suggested 结论。",
+        "审核目录中不存在网页审批界面；审批改为对话内完成。",
+        "candidates.json 中所有候选都带 problem_type，并保持 pending 或 rejected，没有任何候选被标记为 confirmed。",
+        "candidates.json 中所有 target_file 都命中 RULE_FILES 白名单，没有引擎 .py 或未登记文件。",
+        "candidates.json 中每条规则候选都带 source_trace，且 source_trace.target_file 与候选 target_file 一致；没有 trace_method=engine_default 且缺少 I3 决策的规则草稿。",
+        "审核目录中存在 approval_groups.json，按 target_file 分组，每组含 high/medium/low 三档 risk_groups、popup_plan，以及描述该表存什么的 table_note。",
+        "审核目录中存在 intake.json，problem_type=all、source=user_message（用户已明确三类都看、范围全选），prepare/propose 的 problem_scope 与之一致。",
+        "审核目录中存在 match_review.json，按 target_file 分组；每条 pending 且 valid 的规则候选都带 match_mode、options、positive_examples/negative_examples（可为空数组）和 row_hash；all_other_credit/initial 等不支持行内正则的表没有出现 regex 选项。",
+        "审核目录中存在 precheck.json；Agent 报告其触发项（validation_warnings、shadowed_rows、approximate_effect），但因为本轮明确不审批，不要求用户完成 I6。",
+        "技能没有修改 D:/Projects/AUS_BS_CAT_Model 中的任何规则表、配置文件或引擎源码。"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "用 bscat-rule-remediation 处理 sample_extra.csv（仓库 D:/Projects/AUS_BS_CAT_Model）。这次只解决多识别（extra）：这些行本应保持未分类，却被流水线分了类；三个 extra 聚类都处理，不用再问我范围。只生成候选规则、代码诊断和校验报告，不要审批，也不要应用或修改仓库。审核目录放在输出目录下的 review/。",
+      "expected_output": "先确认分支同步（0/0），解析时把空期望/Unclassified 哨兵按“应保持未分类”处理；I2 无触发可跳过，但 attribution_review.json 对 3 个聚类触发 I3（multiple_candidate_tables / owner_ambiguity），Agent 在 propose 前确认目标表并写 dialog_decisions.json#attribution；取证得到 3 个多识别聚类（另有 1 行负对照），候选全部是删除或收窄既有规则、没有低风险批量项（liability/initial/fee 均为高风险），并输出只读代码诊断和校验报告；没有追加分类规则，不生成网页审批界面，仓库未被修改。",
+      "files": ["evals/files/sample_extra.csv"],
+      "expectations": [
+        "审核目录中存在 git_sync.json，且 ahead=0、behind=0。",
+        "审核目录中存在 target_scope.json，来源为 user_prespecified，selected_groups 覆盖 3 个 extra 聚类。",
+        "审核目录中存在 candidates/ 下按引擎拆分的审阅 CSV 和审核目录根部的 candidates_all.csv，规则列与 candidate_id/status/risk_level/match_key 元数据列都在。",
+        "parse_summary.json 的 problem_scope 为 extra，blank_expected_semantics 为 extra；parse_review.json 的 required=false（extra 的信息性警告不算触发项），Agent 不弹 I2。",
+        "attribution_review.json 的 required=true，3 个聚类分别触发 multiple_candidate_tables / owner_ambiguity；Agent 在 propose 前用 AskUserQuestion 逐聚类确认目标表（本轮全部 recommended），把 decisions、fingerprint、decided_at 写入 dialog_decisions.json#attribution。",
+        "取证结果显示 3 个多识别问题行和 3 个聚类；MEDIHIRE 负对照行不生成候选。",
+        "clusters.csv 中所有聚类的问题类型都是 extra。",
+        "candidates.json 中的候选全部是 delete 或 edit/收窄操作，没有 append 分类规则。",
+        "候选的目标引擎覆盖 liability、initial 和 fee；全部为 delete 或 edit/收窄，且没有低风险批量项（三张表均为高风险）。",
+        "candidates.json 中所有 target_file 都命中 RULE_FILES 白名单；没有写入引擎 .py、未登记文件或仓库外路径。",
+        "所有规则候选都带 source_trace；delete/edit 的 source_trace.matched_rule.file 与候选 target_file 一致。",
+        "存在 code_findings.md 和 code_findings.json；可定位的 extra 聚类结论为 config_only。",
+        "审核目录中不存在网页审批界面；审批改为对话内完成。",
+        "所有候选保持 pending，没有被自动确认。",
+        "审核目录中存在 intake.json，problem_type=extra、source=user_message（用户已明确只修 extra、三个聚类都处理），prepare/propose 的 problem_scope 与之一致。",
+        "审核目录中存在 match_review.json，逐 target_file 列出 delete/edit 的匹配逻辑、可用的 custom/narrower 选项与 row_hash；不出现追加分类规则的选项。",
+        "审核目录中存在 precheck.json，触发项含 validation_warnings、approximate_effect；因为本轮不审批，不要求用户完成 I6。",
+        "Python 流水线没有修改仓库中的任何规则表或引擎源码。"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "用 bscat-rule-remediation 分析 sample_mixed.csv（仓库 D:/Projects/AUS_BS_CAT_Model）。我不确定这次主要该修哪类问题（漏识别/多识别/不一致），也不确定该优先新增还是改旧规则；请先问我，再按我的选择生成候选、代码诊断和校验报告。只做到校验报告，不要审批，也不要改仓库。审核目录放在输出目录下的 review/。",
+      "expected_output": "先用 AskUserQuestion 分两次确认入口定位：第一次问问题类型/覆盖范围/交付方式，第二次根据问题类型问修复方向（两问不能挤在同一次调用里）；把答案写入 intake.json（source=popup）。prepare 后发现 parse_review.json 触发 I2（label_conflict）、attribution_review.json 触发 I3，Agent 另起弹窗确认解析权威和目标表并写 dialog_decisions.json，再生成对应候选、写 match_review.json 和校验报告；所有候选保持 pending，不生成 approvals.json，仓库文件不被修改。",
+      "files": ["evals/files/sample_mixed.csv"],
+      "expectations": [
+        "对话中出现两次 I1 AskUserQuestion：第一次含问题类型/覆盖范围/交付方式，第二次只含随问题类型变化的修复方向。",
+        "审核目录中存在 intake.json，source=popup，problem_type ∈ {miss,diff,extra,all}，direction ∈ {append_first,fix_existing,delete_extra,paired,evidence_driven,report_only}。",
+        "prepare/propose 没有因缺少 --problem-type 而报错，parse_summary.json 的 problem_scope 与 intake.json 的 problem_type 一致（all 时仍为 all）。",
+        "parse_review.json 触发 I2 时，Agent 在 propose 前用独立的 AskUserQuestion 确认解析结果/期望分类权威，并把 continue、expected_authority、fingerprint、decided_at 写入 dialog_decisions.json#parse；这些确认没有合并进 I1 的两次弹窗。",
+        "attribution_review.json 触发 I3 时，Agent 在 propose 前逐聚类确认目标表，把 decisions、fingerprint、decided_at 写入 dialog_decisions.json#attribution；I3 弹窗与 I1 的两次弹窗分开。",
+        "candidates.json 中若有候选，problem_type 不超出 intake 的选择；target_scope.json 的来源与问题类型一致。",
+        "审核目录中存在 match_review.json；没有 approvals.json，没有任何候选被 confirmed。",
+        "技能没有修改 D:/Projects/AUS_BS_CAT_Model 中的任何规则表、配置文件或引擎源码。"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "用 bscat-rule-remediation 处理 sample_mixed.csv（仓库 D:/Projects/AUS_BS_CAT_Model）。这次只修漏识别（miss），方向是新增优先，覆盖同聚类。请生成候选、校验，并在审批前逐表让我确认匹配逻辑；我全部按建议。确认后生成 approvals.json，但不要 apply，也不要改仓库。审核目录放在输出目录下的 review/。",
+      "expected_output": "用户已明确问题类型/方向/范围，intake.json 记为 source=user_message。prepare 的 parse_review.json 触发 I2（label_conflict + problem_type_mismatch），Agent 一次问清解析/类型分布/权威列并写 dialog_decisions.json#parse（continue、keep_intake、sample）；attribution_review.json 触发 I3，逐聚类确认目标表后写 #attribution。propose 只生成 miss 候选；check --only validate 写 match_review.json，按 target_file 逐表弹 I4（高风险逐条、低风险可整组），全部选 recommended。写 match_review_decisions.json，每条 row_hash 等于候选当前哈希；reconcile 写 precheck.json 触发 I6，确认后 approve --build 成功，approvals.json 中规则候选 match_logic_confirmed=true。没有 apply，仓库未被修改。",
+      "files": ["evals/files/sample_mixed.csv"],
+      "expectations": [
+        "审核目录中存在 intake.json，problem_type=miss、direction=append_first、source=user_message；Agent 在对话里复述了该入口定位。",
+        "parse_review.json 的 required=true，triggers 含 label_conflict 和 problem_type_mismatch；Agent 用一个 I2 AskUserQuestion 确认解析、问题类型分布（keep_intake，因为用户明确只修 miss）和期望分类权威（sample），并把 continue、type_distribution、expected_authority、fingerprint、decided_at 写入 dialog_decisions.json#parse。",
+        "attribution_review.json 的 required=true；Agent 对每个触发聚类确认目标表（本轮全部 recommended），把 decisions、fingerprint、decided_at 写入 dialog_decisions.json#attribution；propose 没有出现 engine_default 缺决策的硬错。",
+        "candidates.json 只包含 miss 候选（可有 suggestion），没有 extra/diff 候选被当作本轮修复对象应用。",
+        "审核目录中存在 match_review.json，按 target_file 分组；每条待审批规则候选的 options 至少包含 recommended 和 reject，且 row_hash 非空。",
+        "I4 弹窗按 target_file 逐表进行；低风险候选出现“全部按建议/逐条调整/全部拒绝”的批量问题，高/中风险逐条选择。",
+        "审核目录中存在 match_review_decisions.json；每条 selected=recommended 的 row_hash 与 candidates.json 对应当前候选的 row_hash 一致。",
+        "check --only reconcile 生成 precheck.json（required=true，触发 validation_warnings / shadowed_rows / approximate_effect 中至少一项）；Agent 用 I6 AskUserQuestion 确认后把 decision=continue、impact=accept、fingerprint、decided_at 写入 dialog_decisions.json#precheck。",
+        "approvals.json 中每个 confirmed 的规则候选 match_logic_confirmed=true；approve --build 退出码为 0。",
+        "没有 apply_report.json/validation_after.json，审核目录外没有新增仓库改动。",
+        "技能没有修改 D:/Projects/AUS_BS_CAT_Model 中的任何规则表、配置文件或引擎源码。"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "用 bscat-rule-remediation 处理 sample_extra.csv（仓库 D:/Projects/AUS_BS_CAT_Model）。只修 extra，方向删除/收窄。I4 时对第一条候选选更窄匹配，其余按建议；写决策并生成 approvals.json。然后在临时副本上把决策文件的 row_hash 改错，确认 approve --build 会拒绝；正式审核目录保持可用。不要 apply，也不要改仓库。审核目录放在输出目录下的 review/。",
+      "expected_output": "intake.json 记录 extra/delete_extra。prepare 的 I2 可跳过，但 attribution_review.json 触发 I3，先逐聚类确认目标表并写 dialog_decisions.json#attribution。match_review.json 为第一条候选给出 narrower 选项（regex 表用 ^(?:...)$，keyword 表先 re.escape 再锚定）。Agent 把 option.row 写入单字段 dialog_patch，revise --dry-run 写 revise_preview.json（无 match_key/source_trace 触发，I5 可跳过），应用后其余 recommended。reconcile 写 precheck.json 触发 I6，确认后 approve --build 成功且 match_logic_confirmed=true。把临时副本的 row_hash 改错后 approve 非零退出并提示“匹配逻辑在 I4 确认后又被修改”；正式 decisions/approvals 文件未被篡改。没有 apply，仓库未被修改。",
+      "files": ["evals/files/sample_extra.csv"],
+      "expectations": [
+        "审核目录中存在 intake.json，problem_type=extra、direction=delete_extra 或 evidence_driven，source=user_message。",
+        "parse_review.json 的 required=false；attribution_review.json 的 required=true，Agent 在 propose 前完成 3 个聚类的 I3 确认，把 decisions、fingerprint、decided_at 写入 dialog_decisions.json#attribution。",
+        "match_review.json 中第一条候选的 options 含 narrower（和/或 wider），其 row 已改为锚定形式或 re.escape 后的正则；不支持行内正则的表没有该选项。",
+        "dialog_patch.json 使用了第一条候选的 option.row；revise 先生成 revise_preview.json，再写 candidates.json。该补丁只改 row 的单字段且用户已明确要求，preview.triggers 不含 match_key/source_trace，因此不强制 I5；若 Agent 额外确认，也不能跳过 revise 后的重新校验。",
+        "revise 后重新 check --only validate，候选 pattern 与 option.row 一致且 validation.valid=true。",
+        "match_review_decisions.json 中第一条候选 selected=narrower，row_hash 等于该选项的 row_hash_after，且等于当前候选的 row_hash。",
+        "check --only reconcile 写 precheck.json（required=true）；Agent 完成 I6，把 decision=continue、impact=accept、fingerprint、decided_at 写入 dialog_decisions.json#precheck，approve --build 才成功。",
+        "approvals.json 已生成，规则候选 match_logic_confirmed=true；正式审核目录中的 decisions 文件未被篡改。",
+        "在临时副本中篡改 row_hash 后 approve --build 非零退出，错误信息包含“匹配逻辑在 I4 确认后又被修改”或等价的哈希不一致提示。",
+        "没有 apply_report.json/validation_after.json，仓库未被修改。",
+        "技能没有修改 D:/Projects/AUS_BS_CAT_Model 中的任何规则表、配置文件或引擎源码。"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "用 bscat-rule-remediation 处理 sample_empty.csv（仓库 D:/Projects/AUS_BS_CAT_Model）。这份导出只有表头、没有数据行。请照常 prepare，看看门禁是否允许生成候选；不要审批，也不要改仓库。审核目录放在输出目录下的 review/。",
+      "expected_output": "prepare 解析出 0 行，parse_review.json required=true 且 triggers 含 zero_rows；Agent 明确这是硬停，不做零样本推断、不写继续决策，propose 以“解析后样本为 0 行”拒绝生成候选。审核目录没有 candidates.json，仓库未被修改。",
+      "files": ["evals/files/sample_empty.csv"],
+      "expectations": [
+        "审核目录中存在 parse_summary.json，rows_written=0、total_rows_in_input=0。",
+        "parse_review.json 的 required=true，triggers 包含 zero_rows（可同时有其他解析触发项）。",
+        "Agent 在对话里说明 zero_rows 是硬停，不通过 dialog_decisions.json#parse 选择 continue 来绕过。",
+        "运行 propose 时非零退出，错误信息包含“解析后样本为 0 行”或等价的 zero_rows 提示。",
+        "审核目录中不存在 candidates.json 或 candidates/ 下的候选 CSV；不存在 approvals.json。",
+        "技能没有修改 D:/Projects/AUS_BS_CAT_Model 中的任何规则表、配置文件或引擎源码。"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "用 bscat-rule-remediation 处理 sample_mixed.csv（仓库 D:/Projects/AUS_BS_CAT_Model）。先把仓库完整复制到临时目录，只在副本上操作，不要碰原仓库。只修 miss，方向新增优先；I2/I3/I4/I6 都按推荐确认；生成 approvals 后先 dry-run，再加 --apply 写入副本。写后验证成功后按 I8 问我下一步；我选接受并结束本轮。审核目录放在副本外的输出目录。",
+      "expected_output": "在临时副本上完成 prepare→I2/I3→propose→check validate→I4→reconcile→I6→approve→dry-run→apply；写后 validation_after 成功，Agent 用 I8 AskUserQuestion 给出 accept/rollback/full_then_decide/export_report 选项，用户选 accept+end 后把 decision=accept、remaining=end、decided_at 写入 dialog_decisions.json#outcome；原仓库 D:/Projects/AUS_BS_CAT_Model 未被修改。",
+      "files": ["evals/files/sample_mixed.csv"],
+      "expectations": [
+        "所有写入都发生在临时副本路径；原仓库 D:/Projects/AUS_BS_CAT_Model 的文件内容和 git 状态没有被修改，审核目录在副本之外。",
+        "intake.json 记录 problem_type=miss、direction=append_first、source=user_message；prepare/propose 只处理 miss 聚类。",
+        "dialog_decisions.json 含 parse、attribution、precheck 三段，分别带 parse_review.json / attribution_review.json / precheck.json 的 fingerprint 和 decided_at；所有选择与“按推荐确认”一致。",
+        "match_review_decisions.json 的 row_hash 与候选当前哈希一致；approvals.json 中规则候选 match_logic_confirmed=true。",
+        "先运行 apply dry-run，确认不写入后才运行 apply --apply；apply_report.json 存在，validation_after.json 显示写后验证成功。",
+        "写后验证成功后才出现 I8 AskUserQuestion，选项至少含 accept / rollback / full_then_decide / export_report，并带推荐项和结束项。",
+        "dialog_decisions.json#outcome 写入 decision=accept、remaining=end、decided_at；没有在写后失败时询问 I8。",
+        "没有 commit/push/reset/checkout/stash/rebase；没有修改引擎源码或 RULE_FILES 白名单外的文件。"
+      ]
+    }
+  ]
+}

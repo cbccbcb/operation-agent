@@ -1,0 +1,5 @@
+﻿user_id,sample_datetime,application_id,job_id,transaction_id,bank_account_id,account_type,bank,credit_limit,transaction_date,amount,trx_type,dr_cr,expected_category,third_party,illion_trx_uuid,balance,text,current_category
+484225470,2026/5/9 12:42,2420589,1582782,2755537715,4689355,transaction,cba,,2026/3/27,789.0,Direct Debit,debit,,Salt and Lime,036166c3-799d-4ca6-9a92-b1f6f43259ba,-323.85,Direct Debit 314011 SALT&LIME PAYWAY4345585350,External Transfers
+484225470,2026/5/9 12:42,2420589,1582782,2755537761,4689355,transaction,cba,,2026/3/17,19.9,,debit,Unclassified,Groceries,a46f78af-20e8-410f-8a7a-c94c1cfea284,830.0,DUNNINGS TOODYAY JUN TOODYAY AU,Automotive
+484225470,2026/5/9 12:42,2420589,1582782,2755538243,4689355,transaction,cba,,2025/12/6,15.0,Overdrawn Fees,debit,,,3aefa463-9c1b-4f22-8c7a-c153fbf440a4,799.45,Overdraw Fee For exceeding available funds on 05 Dec,Unknown Loans
+484225470,2026/5/9 12:42,2420589,1582782,2755538255,4689355,transaction,cba,,2025/12/5,168.0,,debit,,Health,c3191f20-f5aa-49c6-bc36-d6ca537e3ac2,2150.47,MEDIHIRE & SALESHYDRA INVBELLEVUE AU,unclassified
